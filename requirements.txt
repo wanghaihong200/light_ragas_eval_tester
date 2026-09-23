@@ -1,0 +1,22 @@
+# RAGAS 评估环境依赖(来源:docs/ragas_tutorial.md 第 2.3 / 附录 C 实测版本组合)
+# Python 要求:3.9 ~ 3.11(教程实测 3.11.3)
+# ⚠️ 必须安装在独立虚拟环境,不要装进业务 venv(原因见教程 2.2 踩坑)
+
+# 评估框架本体(教程硬性钉版)
+ragas==0.4.3
+
+# ⚠️ 关键版本钉子,不能省:langchain-community>=0.4.2 删除了
+# langchain_community.chat_models.vertexai,会让 ragas 0.4.3 导入即崩(教程 2.2)
+langchain-community==0.4.1
+
+# OpenAI 兼容协议客户端,接智谱裁判模型 glm-5.3-flash / embedding-3(附录 C 实测版本)
+openai==1.109.1
+langchain-openai==1.1.9
+
+# 读取 .env 配置(教程 2.4)
+python-dotenv
+
+# 仅第 6 章 Testset 自动生成评估集需要;ragas 未将它们放入基础依赖,
+# 缺了会报 ImportError: rapidfuzz is required for string distance(教程附录 A #2)
+rapidfuzz
+nltk
