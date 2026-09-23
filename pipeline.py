@@ -32,20 +32,20 @@ from ragas.metrics.collections import (
     NoiseSensitivity,
 )
 
-ALL_METRICS = (
-    "faithfulness",
-    "answer_relevancy",
-    "context_precision",
-    "context_recall",
-    "factual_correctness",
-    "noise_sensitivity",
-)
+# 指标元数据表:kwargs 即 ragas 0.4.3 ascore 形参(关键字传参,顺序仅作文档);
+# higher_better=False 表示越低越好(如 noise_sensitivity)
+METRIC_SPECS: dict[str, dict] = {
+    "faithfulness":        {"kwargs": ("user_input", "response", "retrieved_contexts"),  "higher_better": True},
+    "answer_relevancy":    {"kwargs": ("user_input", "response"),                        "higher_better": True},
+    "context_precision":   {"kwargs": ("user_input", "reference", "retrieved_contexts"), "higher_better": True},
+    "context_recall":      {"kwargs": ("user_input", "reference", "retrieved_contexts"), "higher_better": True},
+    "factual_correctness": {"kwargs": ("response", "reference"),                         "higher_better": True},
+    "noise_sensitivity":   {"kwargs": ("user_input", "response", "reference", "retrieved_contexts"), "higher_better": False},
+}
 
+ALL_METRICS = tuple(METRIC_SPECS)
 METRICS_NEED_REFERENCE = {
-    "context_precision",
-    "context_recall",
-    "factual_correctness",
-    "noise_sensitivity",
+    m for m, spec in METRIC_SPECS.items() if "reference" in spec["kwargs"]
 }
 
 
