@@ -26,3 +26,9 @@ Desktop.ini
 
 # Generated data
 auto_testset.csv
+
+# Excluded from git
+docs/
+first_eval.py
+gen_testset.py
+/personal_test/
