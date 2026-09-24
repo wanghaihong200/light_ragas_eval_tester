@@ -224,6 +224,22 @@ def check_gates(summary: dict, thresholds: dict[str, float]) -> int:
     return 1 if failed else 0
 
 
+def parse_thresholds(args_list: list[str]) -> dict[str, float]:
+    """解析 --thresholds 参数;格式错误时打印 [error] 并退出 1(快速失败)"""
+    thresholds: dict[str, float] = {}
+    for t in args_list:
+        name, sep, raw = t.partition("=")
+        if not sep or not name or not raw:
+            print(f"[error] --thresholds 格式错误:{t},应为 指标名=分数")
+            sys.exit(1)
+        try:
+            thresholds[name] = float(raw)
+        except ValueError:
+            print(f"[error] --thresholds 分数不是数字:{t},应为 指标名=分数")
+            sys.exit(1)
+    return thresholds
+
+
 def validate_thresholds(thresholds: dict[str, float], enabled: set[str]) -> None:
     """thresholds 引用未启用指标 → 报错退出,防止 CI 假绿"""
     unknown = set(thresholds) - enabled
@@ -268,7 +284,7 @@ def main() -> None:
 
     validate_samples(samples, enabled)
 
-    thresholds = {k: float(v) for k, v in (t.split("=", 1) for t in args.thresholds)}
+    thresholds = parse_thresholds(args.thresholds)
     validate_thresholds(thresholds, enabled)
 
     rows, summary = asyncio.run(run_eval(samples, enabled))

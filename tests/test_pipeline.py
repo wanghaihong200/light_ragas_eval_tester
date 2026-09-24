@@ -100,10 +100,30 @@ class TestGates(unittest.TestCase):
         self.assertEqual(pipeline.check_gates({"noise_sensitivity": 0.1},
                                               {"noise_sensitivity": 0.2}), 0)
 
+    def test_lower_better_passes_at_threshold(self):
+        self.assertEqual(pipeline.check_gates({"noise_sensitivity": 0.2},
+                                              {"noise_sensitivity": 0.2}), 0)
+
     def test_validate_thresholds_rejects_non_enabled_metric(self):
         with self.assertRaises(SystemExit) as cm:
             pipeline.validate_thresholds({"context_recall": 0.8}, {"faithfulness"})
         self.assertEqual(cm.exception.code, 1)
+
+
+class TestParseThresholds(unittest.TestCase):
+    def test_malformed_no_equals_exits(self):
+        with self.assertRaises(SystemExit) as cm:
+            pipeline.parse_thresholds(["faithfulness075"])
+        self.assertEqual(cm.exception.code, 1)
+
+    def test_non_numeric_score_exits(self):
+        with self.assertRaises(SystemExit) as cm:
+            pipeline.parse_thresholds(["faithfulness=abc"])
+        self.assertEqual(cm.exception.code, 1)
+
+    def test_valid_parses(self):
+        self.assertEqual(pipeline.parse_thresholds(["faithfulness=0.75"]),
+                         {"faithfulness": 0.75})
 
 
 class TestReport(unittest.TestCase):
