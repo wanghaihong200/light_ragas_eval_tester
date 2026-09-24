@@ -106,5 +106,19 @@ class TestGates(unittest.TestCase):
         self.assertEqual(cm.exception.code, 1)
 
 
+class TestReport(unittest.TestCase):
+    def test_summary_md_has_direction_column(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as d:
+            rows = [{"id": 1, "user_input": "q",
+                     "faithfulness": 0.9, "noise_sensitivity": 0.1}]
+            summary = {"faithfulness": 0.9, "noise_sensitivity": 0.1}
+            pipeline.write_reports(rows, summary, d, {"faithfulness", "noise_sensitivity"})
+            text = (Path(d) / "summary.md").read_text(encoding="utf-8")
+            self.assertIn("| 指标 | 方向 | 均分 |", text)
+            self.assertIn("| faithfulness | ↑ | 0.9 |", text)
+            self.assertIn("| noise_sensitivity | ↓ | 0.1 |", text)
+
+
 if __name__ == "__main__":
     unittest.main()

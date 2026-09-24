@@ -184,9 +184,12 @@ def write_reports(
     md = [
         f"# RAG 评估报告 {datetime.now():%Y-%m-%d %H:%M}",
         "",
-        "| 指标 | 均分 |",
-        "|------|------|",
-        *(f"| {k} | {v} |" for k, v in summary.items()),
+        "| 指标 | 方向 | 均分 |",
+        "|------|------|------|",
+        *(
+            f"| {m} | {'↑' if METRIC_SPECS[m]['higher_better'] else '↓'} | {v} |"
+            for m, v in summary.items()
+        ),
         "",
         f"- 样本数:{len(rows)}",
         f"- 启用指标:{', '.join(sorted(enabled_metrics))}",
