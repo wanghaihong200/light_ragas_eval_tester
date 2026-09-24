@@ -178,5 +178,62 @@ class TestValidateSamples(unittest.TestCase):
         )  # 不应抛出/退出
 
 
+class TestLoaders(unittest.TestCase):
+    def test_load_csv_tutorial_format(self):
+        import tempfile
+        content = (
+            "user_input,retrieved_contexts,response,reference,id\n"
+            'q1,"[""片段A"",""片段B""]",a1,r1,1\n'
+            "q2,,a2,,2\n"
+        )
+        with tempfile.TemporaryDirectory() as d:
+            p = Path(d) / "samples.csv"
+            p.write_text(content, encoding="utf-8")
+            samples = pipeline.load_samples(str(p))
+        self.assertEqual(len(samples), 2)
+        self.assertEqual(samples[0]["user_input"], "q1")
+        self.assertEqual(samples[0]["retrieved_contexts"], ["片段A", "片段B"])
+        self.assertEqual(samples[0]["response"], "a1")
+        self.assertEqual(samples[0]["reference"], "r1")
+        self.assertEqual(samples[0]["id"], "1")
+        self.assertNotIn("reference", samples[1])
+        self.assertEqual(samples[1]["retrieved_contexts"], [])
+
+    def test_parse_contexts_fallbacks(self):
+        self.assertEqual(pipeline._parse_contexts("单一片段"), ["单一片段"])
+        self.assertEqual(pipeline._parse_contexts('["a","b"]'), ["a", "b"])
+        self.assertEqual(pipeline._parse_contexts(""), [])
+        self.assertEqual(pipeline._parse_contexts(["x"]), ["x"])
+
+    def test_load_jsonl_dispatch(self):
+        import json
+        import tempfile
+        with tempfile.TemporaryDirectory() as d:
+            p = Path(d) / "samples.jsonl"
+            p.write_text(json.dumps({"user_input": "q", "response": "a",
+                                     "retrieved_contexts": ["c"]}),
+                         encoding="utf-8")
+            samples = pipeline.load_samples(str(p))
+        self.assertEqual(len(samples), 1)
+        self.assertEqual(samples[0]["retrieved_contexts"], ["c"])
+
+
+class TestRealDataSmoke(unittest.TestCase):
+    """真实数据冒烟:auto_testset.csv(testset 生成格式)加载与字段映射"""
+
+    AUTO = Path(__file__).resolve().parent.parent / "data" / "auto_testset.csv"
+
+    @unittest.skipUnless(AUTO.exists(), "需要 data/auto_testset.csv(gitignore 生成数据)")
+    def test_load_auto_testset_csv(self):
+        samples = pipeline.load_samples(str(self.AUTO))
+        self.assertGreater(len(samples), 0)
+        s = samples[0]
+        self.assertIn("user_input", s)
+        self.assertIn("retrieved_contexts", s)
+        self.assertGreater(len(s["retrieved_contexts"]), 0)
+        self.assertIn("reference", s)
+        self.assertNotIn("response", s)  # 该文件无 response 列
+
+
 if __name__ == "__main__":
     unittest.main()
