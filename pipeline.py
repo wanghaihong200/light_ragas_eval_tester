@@ -125,15 +125,8 @@ def _build_metrics(enabled: set[str], judge, embedder) -> dict[str, object]:
 
 
 async def _ascore_metric(metric, sample: dict, metric_name: str) -> float:
-    """根据指标所需字段动态调用 ascore"""
-    kwargs: dict = {"user_input": sample["user_input"], "response": sample["response"]}
-    need_ctx = metric_name in {
-        "faithfulness", "context_precision", "context_recall", "noise_sensitivity",
-    }
-    if need_ctx:
-        kwargs["retrieved_contexts"] = sample["retrieved_contexts"]
-    if metric_name in METRICS_NEED_REFERENCE:
-        kwargs["reference"] = sample["reference"]
+    """按 METRIC_SPECS 声明的形参组装 ascore 入参并打分"""
+    kwargs = {f: sample[f] for f in METRIC_SPECS[metric_name]["kwargs"]}
     result = await metric.ascore(**kwargs)
     return round(result.value, 4)
 

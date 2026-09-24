@@ -44,5 +44,44 @@ class TestMetricSpecs(unittest.TestCase):
         )
 
 
+class _FakeMetric:
+    """记录 ascore 收到的 kwargs,返回固定分值,不触达 LLM"""
+
+    def __init__(self):
+        self.seen = None
+
+    async def ascore(self, **kwargs):
+        self.seen = kwargs
+
+        class _R:
+            value = 0.5
+        return _R()
+
+
+class TestAscoreKwargs(unittest.TestCase):
+    def test_context_precision_gets_reference_not_response(self):
+        fake = _FakeMetric()
+        sample = {"user_input": "q", "response": "a",
+                  "reference": "r", "retrieved_contexts": ["c"]}
+        got = asyncio.run(pipeline._ascore_metric(fake, sample, "context_precision"))
+        self.assertEqual(got, 0.5)
+        self.assertEqual(fake.seen, {"user_input": "q", "reference": "r",
+                                     "retrieved_contexts": ["c"]})
+
+    def test_factual_correctness_needs_only_response_and_reference(self):
+        fake = _FakeMetric()
+        sample = {"user_input": "q", "response": "a", "reference": "r"}
+        asyncio.run(pipeline._ascore_metric(fake, sample, "factual_correctness"))
+        self.assertEqual(fake.seen, {"response": "a", "reference": "r"})
+
+    def test_noise_sensitivity_gets_all_four_fields(self):
+        fake = _FakeMetric()
+        sample = {"user_input": "q", "response": "a",
+                  "reference": "r", "retrieved_contexts": ["c"]}
+        asyncio.run(pipeline._ascore_metric(fake, sample, "noise_sensitivity"))
+        self.assertEqual(fake.seen, {"user_input": "q", "response": "a",
+                                     "reference": "r", "retrieved_contexts": ["c"]})
+
+
 if __name__ == "__main__":
     unittest.main()
