@@ -153,5 +153,30 @@ class TestCsvAliases(unittest.TestCase):
         )
 
 
+class TestValidateSamples(unittest.TestCase):
+    def test_missing_reference_exits_for_context_recall(self):
+        with self.assertRaises(SystemExit) as cm:
+            pipeline.validate_samples(
+                [{"user_input": "q", "response": "a", "retrieved_contexts": ["c"]}],
+                {"context_recall"},
+            )
+        self.assertEqual(cm.exception.code, 1)
+
+    def test_missing_response_exits_for_faithfulness(self):
+        with self.assertRaises(SystemExit) as cm:
+            pipeline.validate_samples(
+                [{"user_input": "q", "reference": "r", "retrieved_contexts": ["c"]}],
+                {"faithfulness"},
+            )
+        self.assertEqual(cm.exception.code, 1)
+
+    def test_all_fields_present_passes(self):
+        pipeline.validate_samples(
+            [{"user_input": "q", "response": "a", "reference": "r",
+              "retrieved_contexts": ["c"]}],
+            {"noise_sensitivity"},
+        )  # 不应抛出/退出
+
+
 if __name__ == "__main__":
     unittest.main()

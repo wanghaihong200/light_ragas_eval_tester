@@ -233,6 +233,17 @@ def validate_thresholds(thresholds: dict[str, float], enabled: set[str]) -> None
         sys.exit(1)
 
 
+def validate_samples(samples: list[dict], enabled: set[str]) -> None:
+    """启动前校验:启用指标的每个 ascore 形参字段都必须存在于每条样本"""
+    for m in sorted(enabled):
+        for field in METRIC_SPECS[m]["kwargs"]:
+            missing = [i for i, s in enumerate(samples, 1) if field not in s]
+            if missing:
+                print(f"[error] 指标 {m} 需要 {field} 字段,"
+                      f"但第 {missing[:5]} 条样本缺失")
+                sys.exit(1)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("samples", help="采集样本文件(.jsonl / .csv)")
@@ -255,12 +266,7 @@ def main() -> None:
     samples = load_samples(args.samples)
     assert samples, "样本为空,检查输入文件"
 
-    need_ref = enabled & METRICS_NEED_REFERENCE
-    if need_ref:
-        missing = [i for i, s in enumerate(samples, 1) if "reference" not in s]
-        if missing:
-            print(f"[error] 指标 {need_ref} 需要 reference 字段,但第 {missing[:5]} 条样本缺失")
-            sys.exit(1)
+    validate_samples(samples, enabled)
 
     thresholds = {k: float(v) for k, v in (t.split("=", 1) for t in args.thresholds)}
     validate_thresholds(thresholds, enabled)
