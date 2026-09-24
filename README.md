@@ -40,6 +40,8 @@ light_ragas_eval_tester/
 ├── data/
 │   ├── auto_testset.csv        # TestsetGenerator 生成的问题集(无 response)
 │   └── auto_testset_full.csv   # 补全 response 后的完整评估集
+├── examples/
+│   └── multi_turn_eval.py      # 多轮对话评测示例(TopicAdherence / AgentGoalAccuracy / ToolCallF1)
 ├── report/                 # 每次运行的报告输出(summary.md + detail.csv)
 ├── tests/
 │   └── test_pipeline.py    # 离线单元测试(不调裁判 API)
@@ -133,9 +135,25 @@ python -m unittest tests.test_pipeline -v
 
 > 纪律:换裁判模型 = 历史分数不可比,基线必须用同一裁判重建。
 
+## 多轮对话评测(示例)
+
+`pipeline.py` 目前只评单轮样本;带工具调用/多轮追问的 Agent 场景,
+参见可运行的示例 [`examples/multi_turn_eval.py`](examples/multi_turn_eval.py):
+
+```bash
+python examples/multi_turn_eval.py
+# topic_adherence     (主题贴合, f1)  = 0.9999999999
+# agent_goal_accuracy (目标达成)      = 1.0
+# tool_call_f1        (工具调用 F1)   = 1.0
+```
+
+新版 collections API 直接接收消息列表(`HumanMessage` / `AIMessage` / `ToolMessage`),
+不经过旧版 `MultiTurnSample` 载体;`ToolCallF1` 为确定性计算,免裁判 LLM。
+
 ## TODO
 
-- [ ] 多轮对话评测机制待做(`MultiTurnSample` + `TopicAdherence` / `ToolCallAccuracy` / `AgentGoalAccuracy`,适用于带工具调用/多轮追问的 Agent 场景)
+- [x] 多轮对话评测示例(`examples/multi_turn_eval.py`:TopicAdherence / AgentGoalAccuracy / ToolCallF1)
+- [ ] 多轮对话评测流水线集成待做(pipeline.py 尚不支持多轮样本的加载与批量打分)
 
 ## 深入文档
 
