@@ -235,5 +235,28 @@ class TestRealDataSmoke(unittest.TestCase):
         self.assertNotIn("response", s)  # 该文件无 response 列
 
 
+@unittest.skipUnless(
+    __import__("os").environ.get("OPENAI_API_BASE") and
+    __import__("os").environ.get("OPENAI_API_KEY"),
+    "需要 .env 提供 OPENAI_API_BASE / OPENAI_API_KEY",
+)
+class TestBuildMetricsOffline(unittest.TestCase):
+    def test_all_six_metrics_construct_without_network(self):
+        import os
+
+        from openai import AsyncOpenAI
+        from ragas.embeddings import OpenAIEmbeddings
+        from ragas.llms import llm_factory
+
+        client = AsyncOpenAI(base_url=os.environ["OPENAI_API_BASE"],
+                             api_key=os.environ["OPENAI_API_KEY"])
+        judge = llm_factory(os.getenv("RAGAS_JUDGE_MODEL", "glm-5.3-flash"),
+                            client=client)
+        embedder = OpenAIEmbeddings(
+            model=os.getenv("RAGAS_EMBEDDING_MODEL", "embedding-3"), client=client)
+        metrics = pipeline._build_metrics(set(pipeline.ALL_METRICS), judge, embedder)
+        self.assertEqual(len(metrics), 6)
+
+
 if __name__ == "__main__":
     unittest.main()
