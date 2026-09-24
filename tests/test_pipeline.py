@@ -120,5 +120,38 @@ class TestReport(unittest.TestCase):
             self.assertIn("| noise_sensitivity | ↓ | 0.1 |", text)
 
 
+class TestCsvAliases(unittest.TestCase):
+    def test_reference_contexts_alias_mapped(self):
+        import tempfile
+        content = (
+            "user_input,reference_contexts,reference\n"
+            'q1,"[""片段A"",""片段B""]",r1\n'
+        )
+        with tempfile.TemporaryDirectory() as d:
+            p = Path(d) / "testset.csv"
+            p.write_text(content, encoding="utf-8")
+            samples = pipeline.load_samples(str(p))
+        self.assertEqual(len(samples), 1)
+        self.assertEqual(samples[0]["retrieved_contexts"], ["片段A", "片段B"])
+        self.assertEqual(samples[0]["reference"], "r1")
+        self.assertNotIn("response", samples[0])
+
+    def test_response_column_optional(self):
+        import tempfile
+        content = 'user_input,response,retrieved_contexts\nq1,a1,"[""c""]"\n'
+        with tempfile.TemporaryDirectory() as d:
+            p = Path(d) / "samples.csv"
+            p.write_text(content, encoding="utf-8")
+            samples = pipeline.load_samples(str(p))
+        self.assertEqual(samples[0]["response"], "a1")
+        self.assertEqual(samples[0]["retrieved_contexts"], ["c"])
+
+    def test_parse_contexts_single_quoted_list(self):
+        # testset 生成器输出 Python 风格单引号列表串
+        self.assertEqual(
+            pipeline._parse_contexts("['片段A','片段B']"), ["片段A", "片段B"],
+        )
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -4,6 +4,7 @@
     python pipeline.py data/samples.csv --metrics faithfulness answer_relevancy context_precision context_recall factual_correctness noise_sensitivity
 """
 import argparse
+import ast
 import asyncio
 import csv
 import json
@@ -59,6 +60,12 @@ def _parse_contexts(val) -> list[str]:
                 return parsed
         except json.JSONDecodeError:
             pass
+        try:
+            parsed = ast.literal_eval(val)
+            if isinstance(parsed, list):
+                return parsed
+        except (ValueError, SyntaxError):
+            pass
         return [val]
     return []
 
@@ -91,14 +98,16 @@ def _load_csv(path: str) -> list[dict]:
         reader = csv.DictReader(f)
         for i, raw in enumerate(reader, 1):
             try:
+                ctx_raw = raw.get("retrieved_contexts") or raw.get("reference_contexts", "")
                 row = {
                     "user_input": raw["user_input"],
-                    "response": raw["response"],
-                    "retrieved_contexts": _parse_contexts(raw.get("retrieved_contexts", "")),
+                    "retrieved_contexts": _parse_contexts(ctx_raw),
                 }
-                if "reference" in raw and raw["reference"]:
+                if raw.get("response"):
+                    row["response"] = raw["response"]
+                if raw.get("reference"):
                     row["reference"] = raw["reference"]
-                if "id" in raw and raw["id"]:
+                if raw.get("id"):
                     row["id"] = raw["id"]
                 samples.append(row)
             except KeyError as e:
