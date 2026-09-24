@@ -83,5 +83,28 @@ class TestAscoreKwargs(unittest.TestCase):
                                      "reference": "r", "retrieved_contexts": ["c"]})
 
 
+class TestGates(unittest.TestCase):
+    def test_higher_better_fails_below_threshold(self):
+        self.assertEqual(pipeline.check_gates({"faithfulness": 0.5},
+                                              {"faithfulness": 0.75}), 1)
+
+    def test_higher_better_passes_at_threshold(self):
+        self.assertEqual(pipeline.check_gates({"faithfulness": 0.75},
+                                              {"faithfulness": 0.75}), 0)
+
+    def test_lower_better_fails_above_threshold(self):
+        self.assertEqual(pipeline.check_gates({"noise_sensitivity": 0.3},
+                                              {"noise_sensitivity": 0.2}), 1)
+
+    def test_lower_better_passes_below_threshold(self):
+        self.assertEqual(pipeline.check_gates({"noise_sensitivity": 0.1},
+                                              {"noise_sensitivity": 0.2}), 0)
+
+    def test_validate_thresholds_rejects_non_enabled_metric(self):
+        with self.assertRaises(SystemExit) as cm:
+            pipeline.validate_thresholds({"context_recall": 0.8}, {"faithfulness"})
+        self.assertEqual(cm.exception.code, 1)
+
+
 if __name__ == "__main__":
     unittest.main()

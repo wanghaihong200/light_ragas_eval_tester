@@ -198,11 +198,27 @@ def write_reports(
 
 
 def check_gates(summary: dict, thresholds: dict[str, float]) -> int:
-    """阈值门禁:任一指标低于阈值 → 返回非 0 退出码,CI 直接失败"""
-    failed = {m: (summary[m], t) for m, t in thresholds.items() if summary[m] < t}
-    for m, (score, th) in failed.items():
-        print(f"[GATE-FAIL] {m}={score} < 阈值 {th}")
+    """阈值门禁:方向感知 — 越高越好低于阈值失败,越低越好高于阈值失败"""
+    failed: list[str] = []
+    for m, th in thresholds.items():
+        score = summary[m]
+        hb = METRIC_SPECS[m]["higher_better"]
+        if (hb and score < th) or (not hb and score > th):
+            failed.append(f"[GATE-FAIL] {m}={score} "
+                          f"{'<' if hb else '>'} 阈值 {th}"
+                          + ("" if hb else "(该指标越低越好)"))
+    for msg in failed:
+        print(msg)
     return 1 if failed else 0
+
+
+def validate_thresholds(thresholds: dict[str, float], enabled: set[str]) -> None:
+    """thresholds 引用未启用指标 → 报错退出,防止 CI 假绿"""
+    unknown = set(thresholds) - enabled
+    if unknown:
+        print(f"[error] --thresholds 引用了未启用指标:{sorted(unknown)};"
+              f"请将其加入 --metrics 或删除对应阈值")
+        sys.exit(1)
 
 
 def main() -> None:
@@ -234,10 +250,12 @@ def main() -> None:
             print(f"[error] 指标 {need_ref} 需要 reference 字段,但第 {missing[:5]} 条样本缺失")
             sys.exit(1)
 
+    thresholds = {k: float(v) for k, v in (t.split("=", 1) for t in args.thresholds)}
+    validate_thresholds(thresholds, enabled)
+
     rows, summary = asyncio.run(run_eval(samples, enabled))
     write_reports(rows, summary, args.report_dir, enabled)
-    thresholds = dict(t.split("=") for t in args.thresholds)
-    sys.exit(check_gates(summary, {k: float(v) for k, v in thresholds.items()}))
+    sys.exit(check_gates(summary, thresholds))
 
 
 if __name__ == "__main__":
